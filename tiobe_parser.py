@@ -40,6 +40,10 @@ class Scrapper:
             self.languages.append(ProgrammingLanguage(language, rating))
         return self.languages
 
+    def get_rating_of_language(self, lang):
+        needed_language = next((language for language in self.languages if language.name == lang), None)
+        return needed_language.rating if needed_language is not None else None
+
     def count_words_on_page(self):
         # We get the words in p tags
         text_in_p_blocks_generator = (''.join(p_tag.findAll(text=True)) for p_tag in self.soup.findAll('p'))

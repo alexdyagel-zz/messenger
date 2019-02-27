@@ -115,3 +115,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#some generated  data
+*.doc
+*.docx
+*.csv
