@@ -120,3 +120,5 @@ dmypy.json
 *.doc
 *.docx
 *.csv
+
+sample.py
