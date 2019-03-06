@@ -1,6 +1,8 @@
-import threading
+import pickle
 import socket
 from threading import Thread
+
+from server.model.database import DatabaseHandler, User
 
 
 class MetaSingleton(type):
@@ -30,29 +32,47 @@ class Server(metaclass=MetaSingleton):
             client, client_address = self.server.accept()
             ip, port = client_address
             print("{}:{} has connected.".format(ip, port))
-            client.send(bytes("Connection with server is successful!", "utf8"))
+            # client.send(bytes("Connection with server is successful!", "utf8"))
             self.addresses[client] = client_address
-            Thread(target=self.handle, args=(client, client_address)).start()
+            Thread(target=self.handle, args=(client, ip, port)).start()
 
-    def handle(self, client, client_address):
-        name = client.recv(self.BUFSIZE).decode("utf8")
-        welcome = 'Welcome {}! If you ever want to quit, type [quit] to exit.'.format(name)
+    def handle(self, client, client_ip, client_port):
+        login, password = pickle.load(client.recv(1024))
+        user = User(login, password)
+        if self.authorize(user):
+            client.send(pickle.dumps(True))
+        else:
+            client.send(pickle.dumps(False))
+            return
+        welcome = 'Welcome {}! If you ever want to quit, type [quit] to exit.'.format(login)
         client.send(bytes(welcome, "utf8"))
-        msg = "{} has joined the chat!".format(name)
+        msg = "{} has joined the chat!".format(login)
         self.broadcast(bytes(msg, "utf8"))
-        self.clients[client] = name
-        ip, port = client_address
+        self.clients[client] = login
+
         while True:
             msg = client.recv(self.BUFSIZE)
             if msg != bytes("[quit]", "utf8"):
-                self.broadcast(msg, name + ": ")
+                self.broadcast(msg, login + ": ")
             else:
                 client.send(bytes("[quit]", "utf8"))
                 client.close()
-                print("{}:{} [{}] disconnected.".format(ip, port, name))
+                print("{}:{} [{}] disconnected.".format(client_ip, client_port, login))
                 self.clients.pop(client)
-                self.broadcast(bytes("{} has left the chat.".format(name), "utf8"))
+                self.broadcast(bytes("{} has left the chat.".format(login), "utf8"))
                 break
+
+    def authorize(self, user):
+
+        messenger_db = DatabaseHandler("sqlite:///messengerDB")
+        found_user = messenger_db.get_by_login(user.login)
+        if user is not None:
+            if found_user.password == user.password:
+                return True
+            else:
+                return False
+        else:
+            messenger_db.add(user)
 
     def broadcast(self, msg, prefix=""):  # prefix is for name identification.
         for sock in self.clients:

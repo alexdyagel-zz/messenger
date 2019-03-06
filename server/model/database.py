@@ -3,6 +3,8 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
+from server.model.entities import *
+
 
 @contextmanager
 def db_session(db_url):
@@ -21,15 +23,15 @@ def db_session(db_url):
         connection.close()
 
 
-class DatabaseHandler(object):
+class DatabaseHandler:
     def __init__(self, database_url):
         self.database_url = database_url
 
-    def get_all(self, entity_type):
+    def get_by_login(self, login):
         with db_session(self.database_url) as db:
-            all_values = db.query(entity_type.value).all()
-        return all_values
+            value = db.query(User).filter_by(login=login).first()
+        return value
 
-    def add(self, entity):
+    def add(self, user):
         with db_session(self.database_url) as db:
-            db.add(entity)
+            db.add(user)
