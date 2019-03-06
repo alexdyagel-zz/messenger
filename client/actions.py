@@ -1,4 +1,8 @@
 import argparse
+import socket
+
+RESERVED_PORTS_NUMBER = 1024
+BIGGEST_AVAILABLE_PORT = 65535
 
 
 def init_args():
@@ -36,5 +40,36 @@ def init_args():
     return args
 
 
+def is_valid_ipv4_address(address):
+    try:
+        socket.inet_pton(socket.AF_INET, address)
+    except AttributeError:
+        try:
+            socket.inet_aton(address)
+        except socket.error:
+            return False
+        return address.count('.') == 3
+    except socket.error:
+        return False
+
+    return True
+
+
+def is_valid_port(port):
+    return RESERVED_PORTS_NUMBER < port <= BIGGEST_AVAILABLE_PORT
+
+
 def validate_args(args, parser):
-    pass
+    """
+        Validates commandline arguments
+        :param args: command line arguments
+        :param parser: ArgumentParser object
+    """
+    if not is_valid_ipv4_address(args.ip):
+        parser.error("ip address is not valid ")
+
+    if not is_valid_port(args.port):
+        parser.error(
+            "port is not valid. It should be in range from {} to {}. Except got: {} ".format(RESERVED_PORTS_NUMBER,
+                                                                                             BIGGEST_AVAILABLE_PORT,
+                                                                                             args.port))
