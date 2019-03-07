@@ -1,10 +1,13 @@
+import os
 import pickle
+import re
 import socket
 from threading import Thread
-import os
-import re
-
 from server.model.database import DatabaseHandler, User
+
+from bcrypt import hashpw, gensalt
+
+SALT = b'$2b$12$D39eUP1wg.Z.SVR4SfhLxu'
 
 CODING = "utf-8"
 QUIT = "[quit]"
@@ -30,6 +33,7 @@ class Client:
         self.ip = ip
         self.port = port
         self.login = login
+        self.salt = None
 
     def __str__(self):
         return self.login
@@ -63,7 +67,8 @@ class Server(metaclass=MetaSingleton):
 
     def handle_new_connection(self, client):
         login, password = pickle.loads(client.sock.recv(1024))
-        user = User(login, password)
+        hashed_password = hashpw(password.encode(CODING), SALT)
+        user = User(login, hashed_password)
         if Server.authorize(user):
             client.send(pickle.dumps(True))
             client.login = login
