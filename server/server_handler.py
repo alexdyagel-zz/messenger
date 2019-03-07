@@ -4,6 +4,9 @@ from threading import Thread
 
 from server.model.database import DatabaseHandler, User
 
+CODING = "utf-8"
+QUIT = "[quit]"
+
 
 class MetaSingleton(type):
     _instances = {}
@@ -12,6 +15,20 @@ class MetaSingleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+class Client:
+    def __init__(self, sock, ip, port, login=None):
+        self.sock = sock
+        self.ip = ip
+        self.port = port
+        self.login = login
+
+    def send(self, data):
+        self.sock.send(data)
+
+    def close_socket(self):
+        self.sock.close()
 
 
 class Server(metaclass=MetaSingleton):
@@ -24,56 +41,63 @@ class Server(metaclass=MetaSingleton):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((ip, port))
         self.server.listen(1)
-        self.addresses = {}
-        self.clients = {}
+        self.clients = []
 
     def run(self):
         while True:
-            client, client_address = self.server.accept()
+            client_sock, client_address = self.server.accept()
             ip, port = client_address
             print("{}:{} has connected.".format(ip, port))
-            # client.send(bytes("Connection with server is successful!", "utf8"))
-            self.addresses[client] = client_address
-            Thread(target=self.handle, args=(client, ip, port)).start()
+            client = Client(client_sock, ip, port)
+            Thread(target=self.handle_new_connection, args=(client,)).start()
 
-    def handle(self, client, client_ip, client_port):
-        login, password = pickle.load(client.recv(1024))
+    def handle_new_connection(self, client):
+        login, password = pickle.loads(client.sock.recv(1024))
         user = User(login, password)
-        if self.authorize(user):
+        if Server.authorize(user):
             client.send(pickle.dumps(True))
+            client.login = login
+            self.welcome_new_client(client)
+            self.clients.append(client)
+            self.communicate_with_client(client)
         else:
             client.send(pickle.dumps(False))
             return
-        welcome = 'Welcome {}! If you ever want to quit, type [quit] to exit.'.format(login)
-        client.send(bytes(welcome, "utf8"))
-        msg = "{} has joined the chat!".format(login)
-        self.broadcast(bytes(msg, "utf8"))
-        self.clients[client] = login
 
+    def welcome_new_client(self, client):
+        welcome = 'Welcome {}! If you ever want to quit, type [quit] to exit.'.format(client.login)
+        client.send(welcome.encode(CODING))
+        msg = "{} has joined the chat!".format(client.login)
+        self.broadcast(msg.encode(CODING), client)
+
+    def communicate_with_client(self, client):
         while True:
-            msg = client.recv(self.BUFSIZE)
-            if msg != bytes("[quit]", "utf8"):
-                self.broadcast(msg, login + ": ")
+            msg = client.sock.recv(self.BUFSIZE)
+            msg = msg.decode(CODING)
+            if msg != QUIT:
+                self.broadcast("[{}]: {}".format(client.login, msg).encode(CODING), client)
             else:
-                client.send(bytes("[quit]", "utf8"))
-                client.close()
-                print("{}:{} [{}] disconnected.".format(client_ip, client_port, login))
-                self.clients.pop(client)
-                self.broadcast(bytes("{} has left the chat.".format(login), "utf8"))
+                client.send(QUIT.encode(CODING))
+                client.close_socket()
+                print("{}:{} [{}] disconnected.".format(client.ip, client.port, client.login))
+                self.clients.remove(client)
+                self.broadcast("{} has left the chat.".format(client.login).encode(CODING))
                 break
 
-    def authorize(self, user):
-
+    @staticmethod
+    def authorize(user):
         messenger_db = DatabaseHandler("sqlite:///messengerDB")
         found_user = messenger_db.get_by_login(user.login)
-        if user is not None:
+        if found_user is not None:
             if found_user.password == user.password:
                 return True
             else:
                 return False
         else:
             messenger_db.add(user)
+            return True
 
-    def broadcast(self, msg, prefix=""):  # prefix is for name identification.
-        for sock in self.clients:
-            sock.send(bytes(prefix, "utf8") + msg)
+    def broadcast(self, msg, sender=None):
+        for client in self.clients:
+            if client is not sender:
+                client.send(msg)
