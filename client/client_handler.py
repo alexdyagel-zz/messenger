@@ -3,6 +3,7 @@ import socket
 import threading
 
 CODING = "utf-8"
+QUIT = "[quit]"
 
 
 class Client:
@@ -16,7 +17,7 @@ class Client:
             raise Exception("Invalid password")
         else:
             threading.Thread(target=self.receive_data).start()
-            threading.Thread(target=self.send_msg()).start()
+            threading.Thread(target=self.send_msg).start()
 
     def connect_to_server(self, ip, port):
         self.sock.connect((ip, port))
@@ -30,9 +31,16 @@ class Client:
 
     def receive_data(self):
         while True:
-            data, addr = self.sock.recvfrom(1024)
-            print(data.decode(CODING))
+            data = self.sock.recv(1024)
+            data = data.decode(CODING)
+            if data != QUIT:
+                print(data)
+            else:
+                raise SystemExit
 
     def send_msg(self):
         while True:
             self.sock.send(input("").encode(CODING))
+
+    def communicate_with_server(self):
+        pass

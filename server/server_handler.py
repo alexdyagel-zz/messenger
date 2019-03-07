@@ -2,11 +2,13 @@ import pickle
 import socket
 from threading import Thread
 import os
+import re
 
 from server.model.database import DatabaseHandler, User
 
 CODING = "utf-8"
 QUIT = "[quit]"
+TAG = re.compile("(@[^\s]+)")
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 db_dir = os.path.join(package_directory, 'model', 'messengerDB')
@@ -93,7 +95,7 @@ class Server(metaclass=MetaSingleton):
             msg = client.sock.recv(self.BUFSIZE)
             msg = msg.decode(CODING)
             if msg != QUIT:
-                self.broadcast("[{}]: {}".format(client.login, msg).encode(CODING), client)
+                self.send_msg(msg, client)
             else:
                 client.send(QUIT.encode(CODING))
                 client.close_socket()
@@ -119,3 +121,20 @@ class Server(metaclass=MetaSingleton):
         for client in self.clients:
             if client is not sender:
                 client.send(msg)
+
+    def send_msg(self, msg, client):
+        matching = TAG.match(msg)
+        if matching is not None:
+            receiver_login = matching.group(1)[1:]
+            receiver = self.get_user_by_login(receiver_login)
+            msg = " ".join(msg.split()[1:])
+            if receiver is not None:
+                receiver.send("[{}]: {}".format(client.login, msg).encode(CODING))
+        else:
+            self.broadcast("[{}]: {}".format(client.login, msg).encode(CODING), client)
+
+    def get_user_by_login(self, login):
+        for client in self.clients:
+            if client.login == login:
+                return client
+        return None
