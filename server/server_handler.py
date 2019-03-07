@@ -1,11 +1,16 @@
 import pickle
 import socket
 from threading import Thread
+import os
 
 from server.model.database import DatabaseHandler, User
 
 CODING = "utf-8"
 QUIT = "[quit]"
+
+package_directory = os.path.dirname(os.path.abspath(__file__))
+db_dir = os.path.join(package_directory, 'model', 'messengerDB')
+MESSENGER_DB = ''.join(['sqlite:///', db_dir])
 
 
 class MetaSingleton(type):
@@ -23,6 +28,9 @@ class Client:
         self.ip = ip
         self.port = port
         self.login = login
+
+    def __str__(self):
+        return self.login
 
     def send(self, data):
         self.sock.send(data)
@@ -65,9 +73,19 @@ class Server(metaclass=MetaSingleton):
             return
 
     def welcome_new_client(self, client):
-        welcome = 'Welcome {}! If you ever want to quit, type [quit] to exit.'.format(client.login)
+        welcome = " =========================================================================="
+        welcome += "\n|| Welcome {}!".format(client.login)
+        welcome += "\n|| If you ever want to quit, type [quit] to exit."
+        welcome += "\n|| By default you send broadcast messages"
+        welcome += "\n|| To address certain user use this template: @user_login message"
+        if len(self.clients) != 0:
+            welcome += "\n|| Available users: "
+            for user in self.clients:
+                welcome += "\n||   {}".format(user.login)
+        welcome += " \n==========================================================================\n"
+
         client.send(welcome.encode(CODING))
-        msg = "{} has joined the chat!".format(client.login)
+        msg = "[{}] ==> joined the chat!".format(client.login)
         self.broadcast(msg.encode(CODING), client)
 
     def communicate_with_client(self, client):
@@ -86,7 +104,7 @@ class Server(metaclass=MetaSingleton):
 
     @staticmethod
     def authorize(user):
-        messenger_db = DatabaseHandler("sqlite:///messengerDB")
+        messenger_db = DatabaseHandler(MESSENGER_DB)
         found_user = messenger_db.get_by_login(user.login)
         if found_user is not None:
             if found_user.password == user.password:
