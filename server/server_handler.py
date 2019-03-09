@@ -109,7 +109,6 @@ class Server(metaclass=MetaSingleton):
             if msg != QUIT:
                 self.route_msg(msg, client)
             else:
-                client.send(QUIT.encode(CODING))
                 client.close_socket()
                 print("{}:{} [{}] disconnected.".format(client.ip, client.port, client.login))
                 self.clients.remove(client)

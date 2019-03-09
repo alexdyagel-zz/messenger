@@ -17,8 +17,8 @@ class Client:
         if not self.authorize(login, password):
             raise Exception("Invalid password")
         else:
-            threading.Thread(target=self.communicate).start()
-            self.receive_data()
+            threading.Thread(target=self.send_data).start()
+            threading.Thread(target=self.receive_data).start()
 
     def send(self, data):
         self.sock.send(data)
@@ -41,13 +41,22 @@ class Client:
 
     def receive_data(self):
         while True:
-            data = self.accept_msg()
-            data = data.decode(CODING)
-            if data != QUIT:
-                print(data)
+            try:
+                received_data = self.accept_msg()
+            except:
+                print("Server closed connection.")
+                break
+            if not received_data:
+                print("Server closed connection.")
+                break
             else:
-                raise SystemExit
+                print("Received data: {}".format(received_data.decode(CODING)))
 
-    def communicate(self):
+    def send_data(self):
         while True:
-            self.send(input("").encode(CODING))
+            send_data = input("")
+            if send_data == QUIT:
+                self.send(send_data.encode(CODING))
+                break
+            else:
+                self.send(send_data.encode(CODING))
