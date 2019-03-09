@@ -4,6 +4,7 @@ import threading
 
 CODING = "utf-8"
 QUIT = "[quit]"
+BUFSIZE = 4096
 
 
 class Client:
@@ -16,31 +17,37 @@ class Client:
         if not self.authorize(login, password):
             raise Exception("Invalid password")
         else:
-            threading.Thread(target=self.receive_data).start()
-            threading.Thread(target=self.send_msg).start()
+            threading.Thread(target=self.communicate).start()
+            self.receive_data()
+
+    def send(self, data):
+        self.sock.send(data)
+
+    def accept_msg(self):
+        return self.sock.recv(BUFSIZE)
+
+    def close_socket(self):
+        self.sock.close()
 
     def connect_to_server(self, ip, port):
         self.sock.connect((ip, port))
 
     def authorize(self, login, password):
         credentials = pickle.dumps((login, password))
-        self.sock.send(credentials)
-        response = self.sock.recv(4096)
+        self.send(credentials)
+        response = self.accept_msg()
         response = pickle.loads(response)
         return response
 
     def receive_data(self):
         while True:
-            data = self.sock.recv(1024)
+            data = self.accept_msg()
             data = data.decode(CODING)
             if data != QUIT:
                 print(data)
             else:
                 raise SystemExit
 
-    def send_msg(self):
+    def communicate(self):
         while True:
-            self.sock.send(input("").encode(CODING))
-
-    def communicate_with_server(self):
-        pass
+            self.send(input("").encode(CODING))

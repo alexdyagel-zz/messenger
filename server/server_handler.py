@@ -3,15 +3,16 @@ import pickle
 import re
 import socket
 from threading import Thread
+
+from bcrypt import hashpw
+
 from server.model.database import DatabaseHandler, User
 
-from bcrypt import hashpw, gensalt
-
 SALT = b'$2b$12$D39eUP1wg.Z.SVR4SfhLxu'
-
 CODING = "utf-8"
 QUIT = "[quit]"
 TAG = re.compile("(@[^\s]+)")
+BUFSIZE = 4096
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
 db_dir = os.path.join(package_directory, 'model', 'messengerDB')
@@ -41,13 +42,15 @@ class Client:
     def send(self, data):
         self.sock.send(data)
 
+    def accept_msg(self):
+        return self.sock.recv(BUFSIZE)
+
     def close_socket(self):
         self.sock.close()
 
 
 class Server(metaclass=MetaSingleton):
     DEFAULT_PORT = 8080
-    BUFSIZE = 1024
 
     def __init__(self, ip, port):
         ip = socket.gethostbyname(socket.gethostname()) if ip is None else ip
@@ -67,7 +70,7 @@ class Server(metaclass=MetaSingleton):
 
     def handle_new_connection(self, client):
         login, password = pickle.loads(client.sock.recv(1024))
-        hashed_password = hashpw(password.encode(CODING), SALT)
+        hashed_password = self.hash_password(password)
         user = User(login, hashed_password)
         if Server.authorize(user):
             client.send(pickle.dumps(True))
@@ -78,6 +81,10 @@ class Server(metaclass=MetaSingleton):
         else:
             client.send(pickle.dumps(False))
             return
+
+    @staticmethod
+    def hash_password(password):
+        return hashpw(password.encode(CODING), SALT)
 
     def welcome_new_client(self, client):
         welcome = " =========================================================================="
@@ -97,10 +104,10 @@ class Server(metaclass=MetaSingleton):
 
     def communicate_with_client(self, client):
         while True:
-            msg = client.sock.recv(self.BUFSIZE)
+            msg = client.accept_msg()
             msg = msg.decode(CODING)
             if msg != QUIT:
-                self.send_msg(msg, client)
+                self.route_msg(msg, client)
             else:
                 client.send(QUIT.encode(CODING))
                 client.close_socket()
@@ -127,16 +134,16 @@ class Server(metaclass=MetaSingleton):
             if client is not sender:
                 client.send(msg)
 
-    def send_msg(self, msg, client):
-        matching = TAG.match(msg)
-        if matching is not None:
-            receiver_login = matching.group(1)[1:]
+    def route_msg(self, msg, sender):
+        tag = TAG.match(msg)
+        if tag is not None:
+            receiver_login = tag.group(1)[1:]
             receiver = self.get_user_by_login(receiver_login)
             msg = " ".join(msg.split()[1:])
             if receiver is not None:
-                receiver.send("[{}]: {}".format(client.login, msg).encode(CODING))
+                receiver.send("[{}]: {}".format(sender.login, msg).encode(CODING))
         else:
-            self.broadcast("[{}]: {}".format(client.login, msg).encode(CODING), client)
+            self.broadcast("[{}]: {}".format(sender.login, msg).encode(CODING), sender)
 
     def get_user_by_login(self, login):
         for client in self.clients:
