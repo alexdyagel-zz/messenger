@@ -1,8 +1,8 @@
 import os
 import pickle
 import re
+import select
 import socket
-from threading import Thread
 
 from bcrypt import hashpw
 
@@ -42,7 +42,7 @@ class Client:
     def send(self, data):
         self.sock.send(data)
 
-    def accept_msg(self):
+    def accept(self):
         return self.sock.recv(BUFSIZE)
 
     def close_socket(self):
@@ -59,17 +59,26 @@ class Server(metaclass=MetaSingleton):
         self.server.bind((ip, port))
         self.server.listen(1)
         self.clients = []
+        self.connections = [self.server]
 
     def run(self):
         while True:
-            client_sock, client_address = self.server.accept()
-            ip, port = client_address
-            print("{}:{} has connected.".format(ip, port))
-            client = Client(client_sock, ip, port)
-            Thread(target=self.handle_new_connection, args=(client,)).start()
+            read_sockets, write_sockets, error_sockets = select.select(self.connections, [], [])
+            for sock in read_sockets:
+                if sock == self.server:
+                    client_sock, (ip, port) = self.server.accept()
+                    self.connections.append(client_sock)
+                    print("{}:{} has connected.".format(ip, port))
+                    client = Client(client_sock, ip, port)
+                    self.validate_credentials(client)
+                else:
+                    for client in self.clients:
+                        if client.sock == sock:
+                            self.handle(client)
+                            break
 
-    def handle_new_connection(self, client):
-        login, password = pickle.loads(client.sock.recv(1024))
+    def validate_credentials(self, client):
+        login, password = pickle.loads(client.accept())
         hashed_password = self.hash_password(password)
         user = User(login, hashed_password)
         if Server.authorize(user):
@@ -77,7 +86,6 @@ class Server(metaclass=MetaSingleton):
             client.login = login
             self.welcome_new_client(client)
             self.clients.append(client)
-            self.communicate_with_client(client)
         else:
             client.send(pickle.dumps(False))
             return
@@ -102,9 +110,17 @@ class Server(metaclass=MetaSingleton):
         msg = "[{}] ==> joined the chat!".format(client.login)
         self.broadcast(msg.encode(CODING), client)
 
-    def communicate_with_client(self, client):
-        while True:
-            msg = client.accept_msg()
+    def handle(self, client):
+        try:
+            msg = client.accept()
+        except:
+            self.broadcast("{} has left the chat.".format(client.login).encode(CODING))
+            print("{}:{} [{}] disconnected.".format(client.ip, client.port, client.login))
+            client.close_socket()
+            self.connections.remove(client.sock)
+            return
+
+        if msg:
             msg = msg.decode(CODING)
             if msg != QUIT:
                 self.route_msg(msg, client)
@@ -112,8 +128,8 @@ class Server(metaclass=MetaSingleton):
                 client.close_socket()
                 print("{}:{} [{}] disconnected.".format(client.ip, client.port, client.login))
                 self.clients.remove(client)
+                self.connections.remove(client.sock)
                 self.broadcast("{} has left the chat.".format(client.login).encode(CODING))
-                break
 
     @staticmethod
     def authorize(user):

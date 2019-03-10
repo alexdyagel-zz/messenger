@@ -50,7 +50,7 @@ class Client:
                 print("Server closed connection.")
                 break
             else:
-                print("Received data: {}".format(received_data.decode(CODING)))
+                print(received_data.decode(CODING))
 
     def send_data(self):
         while True:
