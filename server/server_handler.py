@@ -1,8 +1,10 @@
+import logging
 import os
 import pickle
 import re
 import select
 import socket
+import sys
 
 from bcrypt import hashpw
 
@@ -17,6 +19,23 @@ BUFSIZE = 4096
 package_directory = os.path.dirname(os.path.abspath(__file__))
 db_dir = os.path.join(package_directory, 'model', 'messengerDB')
 MESSENGER_DB = ''.join(['sqlite:///', db_dir])
+
+logger = logging.getLogger(__name__)
+logfile = "messenger_server_log.log"
+
+formatter = logging.Formatter('%(asctime)s - %(levelname)s : %(message)s')
+
+file_handler = logging.FileHandler(logfile)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+
+screen_handler = logging.StreamHandler(sys.stdout)
+screen_handler.setLevel(logging.INFO)
+screen_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(screen_handler)
+logger.setLevel(logging.DEBUG)
 
 
 class MetaSingleton(type):
@@ -62,13 +81,14 @@ class Server(metaclass=MetaSingleton):
         self.connections = [self.server]
 
     def run(self):
+        logger.info("Running server")
         while True:
             read_sockets, write_sockets, error_sockets = select.select(self.connections, [], [])
             for sock in read_sockets:
                 if sock == self.server:
                     client_sock, (ip, port) = self.server.accept()
                     self.connections.append(client_sock)
-                    print("{}:{} has connected.".format(ip, port))
+                    logger.info("{}:{} has connected.".format(ip, port))
                     client = Client(client_sock, ip, port)
                     self.validate_credentials(client)
                 else:
@@ -136,12 +156,15 @@ class Server(metaclass=MetaSingleton):
         messenger_db = DatabaseHandler(MESSENGER_DB)
         found_user = messenger_db.get_by_login(user.login)
         if found_user is not None:
-            if found_user.password == user.password:
+            if user.password == found_user.password:
+                logger.info("User {} successfully signed in".format(user.login))
                 return True
             else:
+                logger.info("Authorization failed for user {}. Incorrect password.".format(user.login))
                 return False
         else:
             messenger_db.add(user)
+            logger.info("User {} successfully signed up".format(user.login))
             return True
 
     def broadcast(self, msg, sender=None):
