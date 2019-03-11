@@ -220,7 +220,7 @@ class Server(metaclass=MetaSingleton):
         logger.info("{}:{} [{}] disconnected.".format(client.ip, client.port, client.login))
         self.clients.remove(client)
         self.connections.remove(client.sock)
-        self.broadcast("{} has left the chat.".format(client.login).encode(CODING))
+        self.broadcast("[{}] <== left the chat.".format(client.login).encode(CODING))
 
     @staticmethod
     def authorize(user):
