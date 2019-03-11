@@ -27,14 +27,20 @@ class Client:
         :param login: login of user
         :param password: password of user
         """
-        self.connect_to_server(ip, port)
-        if not self.authorize(login, password):
-            raise Exception("Invalid password")
+
+        try:
+            self.connect_to_server(ip, port)
+        except socket.error:
+            print("Unable to connect to server")
+            raise
         else:
-            send_thread = threading.Thread(target=self.send_data)
-            send_thread.setDaemon(True)
-            send_thread.start()
-            threading.Thread(target=self.receive_data).start()
+            if not self.authorize(login, password):
+                raise Exception("Invalid password")
+            else:
+                send_thread = threading.Thread(target=self.send_data)
+                send_thread.setDaemon(True)
+                send_thread.start()
+                threading.Thread(target=self.receive_data).start()
 
     def send(self, data):
         """

@@ -66,7 +66,10 @@ def is_valid_port(port):
     :param port: port to be checked
     :return: boolean result of checking
     """
-    return RESERVED_PORTS_NUMBER < port <= BIGGEST_AVAILABLE_PORT
+    if not isinstance(port, int):
+        return False
+    else:
+        return RESERVED_PORTS_NUMBER < port <= BIGGEST_AVAILABLE_PORT
 
 
 def validate_args(args, parser):
