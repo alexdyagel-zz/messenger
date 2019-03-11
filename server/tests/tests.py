@@ -1,5 +1,6 @@
 import unittest
 import server.handler.arguments_validation as validation
+import server.handler.server_handler as handler
 
 
 class TestArgumentsValidation(unittest.TestCase):
@@ -32,6 +33,13 @@ class TestArgumentsValidation(unittest.TestCase):
         port = "125"
         result = validation.is_valid_port(port)
         self.assertEqual(result, False)
+
+
+class TestServerHandler(unittest.TestCase):
+    def test_password_is_hashed_to_bytes(self):
+        password = "12345"
+        hashed_password = handler.Server.hash_password(password)
+        self.assertIsInstance(hashed_password, bytes)
 
 
 if __name__ == '__main__':

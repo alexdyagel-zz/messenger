@@ -7,6 +7,10 @@ QUIT = "[quit]"
 BUFSIZE = 4096
 
 
+class AuthorizationException(Exception):
+    pass
+
+
 class Client:
     """
             This is a class for interacting with server.
@@ -35,7 +39,7 @@ class Client:
             raise
         else:
             if not self.authorize(login, password):
-                raise Exception("Invalid password")
+                raise AuthorizationException("Invalid password")
             else:
                 send_thread = threading.Thread(target=self.send_data)
                 send_thread.setDaemon(True)

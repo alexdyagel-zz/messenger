@@ -40,7 +40,7 @@ logger.setLevel(logging.DEBUG)
 
 class MetaSingleton(type):
     """
-          Metaclass for implementation singleton pattern.
+          Metaclass for implementation of singleton pattern.
     """
 
     _instances = {}
@@ -94,7 +94,7 @@ class Client:
 
 class Server(metaclass=MetaSingleton):
     """
-            This is a class for interacting with clients.
+            This is a class for interacting with clients. This class uses singleton pattern
 
             Attributes:
                 server (socket.socket): Servers socket.
