@@ -27,12 +27,13 @@ class Client:
         :param login: login of user
         :param password: password of user
         """
-
         self.connect_to_server(ip, port)
         if not self.authorize(login, password):
             raise Exception("Invalid password")
         else:
-            threading.Thread(target=self.send_data).start()
+            send_thread = threading.Thread(target=self.send_data)
+            send_thread.setDaemon(True)
+            send_thread.start()
             threading.Thread(target=self.receive_data).start()
 
     def send(self, data):
