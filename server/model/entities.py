@@ -5,6 +5,14 @@ Base = declarative_base()
 
 
 class User(Base):
+    """
+            This is a class for mapping entities from database to python objects.
+
+            Attributes:
+                login (str): users login.
+                password (str): users hashed password.
+    """
+
     __tablename__ = 'user'
     login = Column(String, primary_key=True)
     password = Column(String)

@@ -27,6 +27,11 @@ def init_args():
 
 
 def is_valid_ipv4_address(ip):
+    """
+    Check ip address for correctness
+    :param ip: ip address to be checked
+    :return: boolean result of checking
+    """
     try:
         socket.inet_pton(socket.AF_INET, ip)
     except AttributeError:
@@ -42,17 +47,25 @@ def is_valid_ipv4_address(ip):
 
 
 def is_valid_port(port):
+    """
+    Check port for correctness. It should be in range of allowed ports.
+    :param port: port to be checked
+    :return: boolean result of checking
+    """
     return RESERVED_PORTS_NUMBER < port <= BIGGEST_AVAILABLE_PORT
 
 
 def validate_args(args, parser):
-    if args.ip is not None:
-        if not is_valid_ipv4_address(args.ip):
-            parser.error("ip address is not valid ")
+    """
+    Validates commandline arguments
+    :param args: command line arguments
+    :param parser: ArgumentParser object
+    """
+    if args.ip is not None and not is_valid_ipv4_address(args.ip):
+        parser.error("ip address is not valid ")
 
-    if args.port is not None:
-        if not is_valid_port(args.port):
-            parser.error(
-                "port is not valid. It should be in range from {} to {}. Except got: {} ".format(RESERVED_PORTS_NUMBER,
-                                                                                                 BIGGEST_AVAILABLE_PORT,
-                                                                                                 args.port))
+    if args.port is not None and not is_valid_port(args.port):
+        parser.error(
+            "port is not valid. It should be in range from {} to {}. Except got: {} ".format(RESERVED_PORTS_NUMBER,
+                                                                                             BIGGEST_AVAILABLE_PORT,
+                                                                                             args.port))

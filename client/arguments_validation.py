@@ -40,15 +40,20 @@ def init_args():
     return args
 
 
-def is_valid_ipv4_address(address):
+def is_valid_ipv4_address(ip):
+    """
+    Check ip address for correctness
+    :param ip: ip address to be checked
+    :return: boolean result of checking
+    """
     try:
-        socket.inet_pton(socket.AF_INET, address)
+        socket.inet_pton(socket.AF_INET, ip)
     except AttributeError:
         try:
-            socket.inet_aton(address)
+            socket.inet_aton(ip)
         except socket.error:
             return False
-        return address.count('.') == 3
+        return ip.count('.') == 3
     except socket.error:
         return False
 
@@ -56,6 +61,11 @@ def is_valid_ipv4_address(address):
 
 
 def is_valid_port(port):
+    """
+    Check port for correctness. It should be in range of allowed ports.
+    :param port: port to be checked
+    :return: boolean result of checking
+    """
     return RESERVED_PORTS_NUMBER < port <= BIGGEST_AVAILABLE_PORT
 
 
