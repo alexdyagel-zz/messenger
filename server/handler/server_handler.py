@@ -17,7 +17,7 @@ TAG = re.compile("(@[^\s]+)")
 BUFSIZE = 4096
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
-db_dir = os.path.join(package_directory, 'model', 'messengerDB')
+db_dir = os.path.join(package_directory, '..', 'model', 'messengerDB')
 MESSENGER_DB = ''.join(['sqlite:///', db_dir])
 
 logger = logging.getLogger(__name__)

@@ -36,7 +36,6 @@ class Client:
             self.connect_to_server(ip, port)
         except socket.error:
             print("Unable to connect to server")
-            raise
         else:
             if not self.authorize(login, password):
                 raise AuthorizationException("Invalid password")
