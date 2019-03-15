@@ -104,8 +104,8 @@ class Server(metaclass=MetaSingleton):
 
     DEFAULT_PORT = 8080
 
-    def __init__(self, ip, port):
-        ip = socket.gethostbyname(socket.gethostname()) if ip is None else ip
+    def __init__(self, port):
+        ip = socket.gethostbyname(socket.gethostname())
         port = Server.DEFAULT_PORT if port is None else port
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((ip, port))

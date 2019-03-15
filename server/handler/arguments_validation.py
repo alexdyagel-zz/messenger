@@ -13,10 +13,6 @@ def init_args():
     parser = argparse.ArgumentParser(
         description='This is a server for messenger')
 
-    parser.add_argument('--ip',
-                        type=str,
-                        help='Optional str argument with ip address of the server')
-
     parser.add_argument('--port',
                         type=int,
                         help='Optional int argument with port of server')
@@ -24,26 +20,6 @@ def init_args():
     args = parser.parse_args()
     validate_args(args, parser)
     return args
-
-
-def is_valid_ipv4_address(ip):
-    """
-    Check ip address for correctness
-    :param ip: ip address to be checked
-    :return: boolean result of checking
-    """
-    try:
-        socket.inet_pton(socket.AF_INET, ip)
-    except AttributeError:
-        try:
-            socket.inet_aton(ip)
-        except socket.error:
-            return False
-        return ip.count('.') == 3
-    except socket.error:
-        return False
-
-    return True
 
 
 def is_valid_port(port):
@@ -64,8 +40,6 @@ def validate_args(args, parser):
     :param args: command line arguments
     :param parser: ArgumentParser object
     """
-    if args.ip is not None and not is_valid_ipv4_address(args.ip):
-        parser.error("ip address is not valid ")
 
     if args.port is not None and not is_valid_port(args.port):
         parser.error(
