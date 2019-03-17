@@ -105,19 +105,26 @@ class Server(metaclass=MetaSingleton):
     DEFAULT_PORT = 8080
 
     def __init__(self, port):
-        ip = socket.gethostbyname(socket.gethostname())
-        port = Server.DEFAULT_PORT if port is None else port
+        self.ip = Server.get_ip()
+        self.port = Server.DEFAULT_PORT if port is None else port
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((ip, port))
+        self.server.bind((self.ip, self.port))
         self.server.listen(1)
         self.clients = []
         self.connections = [self.server]
+
+    @staticmethod
+    def get_ip():
+        return [l for l in (
+            [ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [
+                [(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in
+                 [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
 
     def run(self):
         """
         Runs server for handling connections
         """
-        logger.info("Running server")
+        logger.info("Running server on {}:{}".format(self.ip, self.port))
         while True:
             self.handle_connections()
 

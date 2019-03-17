@@ -1,5 +1,4 @@
 import argparse
-import socket
 
 RESERVED_PORTS_NUMBER = 1024
 BIGGEST_AVAILABLE_PORT = 65535
