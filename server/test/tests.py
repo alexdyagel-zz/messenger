@@ -1,5 +1,5 @@
 import unittest
-import server.handler.arguments_validation as validation
+import client.arguments_validation as validation
 import server.handler.server_handler as handler
 
 
