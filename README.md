@@ -16,16 +16,14 @@ $ pip install -r /path/to/requirements.txt
 
 First of all you should run server. Server package can be placed in any host separately from client.
 You should run messenger_server.py script which stored in server package root. 
-There are two optional arguments:
-* --ip
+There are one optional arguments:
 * --port
 
-If they are not specified, default values will be chosen (current host ip address and 8080 for ip and port respectively).
+If it is not specified, default value will be chosen (8080).
 Examples of running server:
 ```sh
 $ python messenger_server.py
-$ python messenger_server.py --ip 127.0.0.1
-$ python messenger_server.py --ip 192.168.56.5 --port 8081
+$ python messenger_server.py  --port 8081
 ```
 
 Then you should run client-side messenger. You should run messenger.py script which stored in root of client package. Script requires 4 arguments:
